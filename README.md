@@ -1,5 +1,5 @@
 <p align="center">
-  <span style="font-size: 48px;">📦</span>
+  <span style="font-size: 60px;">📦</span>
   <br />
   <h1 align="center">WarehouseOS UI</h1>
   <p align="center">
