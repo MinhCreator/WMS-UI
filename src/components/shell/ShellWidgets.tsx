@@ -31,9 +31,15 @@ import {
 import { Link } from "react-router-dom";
 import type { Warehouse } from "../../types";
 import { currentOperator, warehouses } from "../../data/meta";
-import { notifications as seedNotifications } from "../../data/ops";
 import { useState } from "react";
 import { useAppToast } from "../ui/Toast";
+import { useAppDispatch, useAppSelector } from "../../states/hooks";
+import {
+  markAllNotificationsRead,
+  markNotificationRead,
+  selectNotifications,
+  selectUnreadCount,
+} from "../../states/slices/uiSlice";
 
 export function LogoMark({ size = 28 }: { size?: number }) {
   return (
@@ -77,7 +83,9 @@ export function WarehouseMenu({
         >
           <span className="flex min-w-0 flex-col items-start leading-tight">
             <span className="text-2xs font-medium text-ink-4">Warehouse</span>
-            <span className="w-full truncate text-tn text-ink">{warehouse.name}</span>
+            <span className="w-full truncate text-tn text-ink">
+              {warehouse.name}
+            </span>
           </span>
         </MenuButton>
         <MenuList minW="250px" zIndex={40}>
@@ -94,7 +102,9 @@ export function WarehouseMenu({
                     {w.code} · {w.city}
                   </span>
                 </span>
-                {w.code === warehouse.code && <span className="h-2 w-2 rounded-full bg-accent" />}
+                {w.code === warehouse.code && (
+                  <span className="h-2 w-2 rounded-full bg-accent" />
+                )}
               </span>
             </MenuItem>
           ))}
@@ -131,7 +141,9 @@ export function WarehouseMenu({
                   {w.code} · {w.city}
                 </span>
               </span>
-              {w.code === warehouse.code && <span className="h-2 w-2 rounded-full bg-accent" />}
+              {w.code === warehouse.code && (
+                <span className="h-2 w-2 rounded-full bg-accent" />
+              )}
             </span>
           </MenuItem>
         ))}
@@ -140,13 +152,17 @@ export function WarehouseMenu({
   );
 }
 
-export function NotificationsButton({ variant = "icon" }: { variant?: "icon" | "row" }) {
-  const [items, setItems] = useState(seedNotifications);
-  const unread = items.filter((i) => !i.read).length;
+export function NotificationsButton({
+  variant = "icon",
+}: {
+  variant?: "icon" | "row";
+}) {
+  const dispatch = useAppDispatch();
+  const items = useAppSelector(selectNotifications);
+  const unread = useAppSelector(selectUnreadCount);
 
-  const markAll = () => setItems((prev) => prev.map((i) => ({ ...i, read: true })));
-  const markOne = (id: string) =>
-    setItems((prev) => prev.map((i) => (i.id === id ? { ...i, read: true } : i)));
+  const markAll = () => dispatch(markAllNotificationsRead());
+  const markOne = (id: string) => dispatch(markNotificationRead(id));
 
   const badge = unread > 0 && (
     <span
@@ -183,10 +199,18 @@ export function NotificationsButton({ variant = "icon" }: { variant?: "icon" | "
           </button>
         )}
       </PopoverTrigger>
-      <PopoverContent w="450px" maxH="440px" borderRadius="8px" borderColor="#e4e7ec" zIndex={40}>
+      <PopoverContent
+        w="450px"
+        maxH="440px"
+        borderRadius="8px"
+        borderColor="#e4e7ec"
+        zIndex={40}
+      >
         <PopoverHeader px="12px" py="8px" borderBottomWidth="1px">
           <span className="flex items-center justify-between">
-            <span className="text-tn font-semibold text-ink">Notifications</span>
+            <span className="text-tn font-semibold text-ink">
+              Notifications
+            </span>
             <button
               type="button"
               onClick={markAll}
@@ -215,7 +239,8 @@ export function NotificationsButton({ variant = "icon" }: { variant?: "icon" | "
                 onClick={() => markOne(n.id)}
                 className={`flex w-full gap-2.5 border-b border-[#eef1f5] px-3 py-2.5 text-left last:border-b-0 hover:bg-surface-2 ${
                   n.read ? "" : "bg-accent-soft/60"
-                }`}>
+                }`}
+              >
                 <span
                   className={`ml-1.5 mt-1.5 h-2 w-2 shrink-0 rounded-full ${dot}`}
                   aria-hidden
@@ -223,7 +248,8 @@ export function NotificationsButton({ variant = "icon" }: { variant?: "icon" | "
                 <span className="min-w-0 flex-1">
                   <span className="flex items-baseline justify-between gap-2">
                     <span
-                      className={`truncate text-tn ${n.read ? "text-ink-2" : "font-semibold text-ink"}`}>
+                      className={`truncate text-tn ${n.read ? "text-ink-2" : "font-semibold text-ink"}`}
+                    >
                       {n.title}
                     </span>
                     <span className="shrink-0 text-2xs text-ink-4 pr-5">
@@ -274,7 +300,9 @@ export function HelpButton({ variant = "icon" }: { variant?: "icon" | "row" }) {
         >
           <HelpCircle size={15} className="text-ink-3" />
           <span className="flex-1 text-left">Help</span>
-          <span className="rounded-[4px] border border-line px-1 text-2xs text-ink-4">?</span>
+          <span className="rounded-[4px] border border-line px-1 text-2xs text-ink-4">
+            ?
+          </span>
         </button>
       )}
 
@@ -286,23 +314,32 @@ export function HelpButton({ variant = "icon" }: { variant?: "icon" | "row" }) {
           </ModalHeader>
           <ModalBody py={4}>
             <div className="mb-4 text-tn text-ink-2">
-              WarehouseOS runs on keyboard-first workflows built for scan guns, pick
-              tablets and desktop workstations.
+              WarehouseOS runs on keyboard-first workflows built for scan guns,
+              pick tablets and desktop workstations.
             </div>
             <table className="w-full text-left">
               <thead>
                 <tr className="text-2xs tracking-[0.06em] text-ink-3 uppercase">
-                  <th scope="col" className="border-b border-line pb-1.5 font-semibold">
+                  <th
+                    scope="col"
+                    className="border-b border-line pb-1.5 font-semibold"
+                  >
                     Shortcut
                   </th>
-                  <th scope="col" className="border-b border-line pb-1.5 font-semibold">
+                  <th
+                    scope="col"
+                    className="border-b border-line pb-1.5 font-semibold"
+                  >
                     Action
                   </th>
                 </tr>
               </thead>
               <tbody>
                 {shortcuts.map(([k, label]) => (
-                  <tr key={k} className="border-b border-[#eef1f5] last:border-b-0">
+                  <tr
+                    key={k}
+                    className="border-b border-[#eef1f5] last:border-b-0"
+                  >
                     <td className="py-2 pr-4">
                       <kbd className="rounded-[4px] border border-line bg-surface-2 px-1.5 py-0.5 font-mono text-2xs font-semibold text-ink-2">
                         {k}
@@ -314,8 +351,12 @@ export function HelpButton({ variant = "icon" }: { variant?: "icon" | "row" }) {
               </tbody>
             </table>
             <div className="mt-4 rounded-[6px] border border-line bg-surface-2 p-3 text-2xs text-ink-3">
-              Support: <span className="font-semibold text-ink-2">ops-support@warehouseos.io</span> ·
-              Shift hotline <span className="font-semibold text-ink-2">(614) 555-0177</span> ·
+              Support:{" "}
+              <span className="font-semibold text-ink-2">
+                ops-support@warehouseos.io
+              </span>{" "}
+              · Shift hotline{" "}
+              <span className="font-semibold text-ink-2">(614) 555-0177</span> ·
               Build 2026.10.7
             </div>
           </ModalBody>
@@ -333,11 +374,22 @@ export function UserMenu({ variant = "icon" }: { variant?: "icon" | "row" }) {
       <MenuItem
         icon={<UserRound size={14} />}
         fontSize="13px"
-        onClick={() => toast({ title: "Profile", description: "Profile settings are not part of this demo.", status: "info" })}
+        onClick={() =>
+          toast({
+            title: "Profile",
+            description: "Profile settings are not part of this demo.",
+            status: "info",
+          })
+        }
       >
         Profile
       </MenuItem>
-      <MenuItem icon={<Settings size={14} />} fontSize="13px" as={Link} to="/settings">
+      <MenuItem
+        icon={<Settings size={14} />}
+        fontSize="13px"
+        as={Link}
+        to="/settings"
+      >
         Settings
       </MenuItem>
       <MenuDivider />
@@ -345,7 +397,13 @@ export function UserMenu({ variant = "icon" }: { variant?: "icon" | "row" }) {
         icon={<LogOut size={14} />}
         fontSize="13px"
         color="danger.600"
-        onClick={() => toast({ title: "Signed out", description: "Demo session remains active.", status: "info" })}
+        onClick={() =>
+          toast({
+            title: "Signed out",
+            description: "Demo session remains active.",
+            status: "info",
+          })
+        }
       >
         Sign out
       </MenuItem>
@@ -373,12 +431,16 @@ export function UserMenu({ variant = "icon" }: { variant?: "icon" | "row" }) {
               <span className="block truncate text-tn font-semibold text-ink">
                 {currentOperator.name}
               </span>
-              <span className="block truncate text-2xs text-ink-3">{currentOperator.role}</span>
+              <span className="block truncate text-2xs text-ink-3">
+                {currentOperator.role}
+              </span>
             </span>
             <ChevronDown size={13} className="shrink-0 text-ink-4" />
           </span>
         </MenuButton>
-        <MenuList minW="210px" zIndex={40}>{items}</MenuList>
+        <MenuList minW="210px" zIndex={40}>
+          {items}
+        </MenuList>
       </Menu>
     );
   }
@@ -398,7 +460,9 @@ export function UserMenu({ variant = "icon" }: { variant?: "icon" | "row" }) {
       </MenuButton>
       <MenuList minW="210px" zIndex={40}>
         <div className="border-b border-line px-3 py-2">
-          <div className="text-tn font-semibold text-ink">{currentOperator.name}</div>
+          <div className="text-tn font-semibold text-ink">
+            {currentOperator.name}
+          </div>
           <div className="text-2xs text-ink-3">{currentOperator.email}</div>
         </div>
         {items}

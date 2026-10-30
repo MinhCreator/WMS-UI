@@ -1,8 +1,20 @@
-import { Drawer, DrawerContent, DrawerOverlay, useMediaQuery } from "@chakra-ui/react";
-import { useEffect, useState } from "react";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerOverlay,
+  useMediaQuery,
+} from "@chakra-ui/react";
+import { useEffect } from "react";
 import { Outlet, useLocation } from "react-router-dom";
-import type { Warehouse } from "../../types";
-import { warehouses } from "../../data/meta";
+import { useAppDispatch, useAppSelector } from "../../states/hooks";
+import { selectWarehouse, setWarehouse } from "../../states/slices/sessionSlice";
+import {
+  selectDrawerOpen,
+  selectSearchOpen,
+  setDrawerOpen,
+  setSearchOpen,
+  toggleSearch,
+} from "../../states/slices/uiSlice";
 import { CommandSearch } from "./CommandSearch";
 import { Header } from "./Header";
 import { Sidebar } from "./Sidebar";
@@ -10,9 +22,10 @@ import { Sidebar } from "./Sidebar";
 export function AppShell() {
   const [isLg] = useMediaQuery("(min-width: 1024px)");
   const [isXl] = useMediaQuery("(min-width: 1280px)");
-  const [drawerOpen, setDrawerOpen] = useState(false);
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [warehouse, setWarehouse] = useState<Warehouse>(warehouses[0]);
+  const dispatch = useAppDispatch();
+  const drawerOpen = useAppSelector(selectDrawerOpen);
+  const searchOpen = useAppSelector(selectSearchOpen);
+  const warehouse = useAppSelector(selectWarehouse);
   const location = useLocation();
 
   useEffect(() => {
@@ -31,17 +44,17 @@ export function AppShell() {
 
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
-        setSearchOpen((v) => !v);
+        dispatch(toggleSearch());
         return;
       }
       if (e.key === "/" && !inField && !e.metaKey && !e.ctrlKey) {
         e.preventDefault();
-        setSearchOpen(true);
+        dispatch(setSearchOpen(true));
       }
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, []);
+  }, [dispatch]);
 
   const showSidebar = isLg;
   const collapsed = showSidebar && !isXl;
@@ -50,7 +63,7 @@ export function AppShell() {
     <Sidebar
       collapsed={collapsed}
       warehouse={warehouse}
-      onWarehouseChange={setWarehouse}
+      onWarehouseChange={(w) => dispatch(setWarehouse(w.code))}
       onNavigate={onNavigate}
     />
   );
@@ -60,11 +73,16 @@ export function AppShell() {
       {showSidebar && sidebar()}
 
       {!showSidebar && (
-        <Drawer isOpen={drawerOpen} onClose={() => setDrawerOpen(false)} placement="left" size="xs">
+        <Drawer
+          isOpen={drawerOpen}
+          onClose={() => dispatch(setDrawerOpen(false))}
+          placement="left"
+          size="xs"
+        >
           <DrawerOverlay bg="rgba(16,24,40,0.45)" />
           <DrawerContent maxW="240px" bg="transparent">
             <div className="h-full">
-              {sidebar(() => setDrawerOpen(false))}
+              {sidebar(() => dispatch(setDrawerOpen(false)))}
             </div>
           </DrawerContent>
         </Drawer>
@@ -73,10 +91,10 @@ export function AppShell() {
       <div className="flex min-w-0 flex-1 flex-col">
         <Header
           showMenu={!showSidebar}
-          onOpenMenu={() => setDrawerOpen(true)}
-          onOpenSearch={() => setSearchOpen(true)}
+          onOpenMenu={() => dispatch(setDrawerOpen(true))}
+          onOpenSearch={() => dispatch(setSearchOpen(true))}
           warehouse={warehouse}
-          onWarehouseChange={setWarehouse}
+          onWarehouseChange={(w) => dispatch(setWarehouse(w.code))}
         />
         <main
           id="main-scroll"
@@ -86,7 +104,10 @@ export function AppShell() {
         </main>
       </div>
 
-      <CommandSearch open={searchOpen} onClose={() => setSearchOpen(false)} />
+      <CommandSearch
+        open={searchOpen}
+        onClose={() => dispatch(setSearchOpen(false))}
+      />
     </div>
   );
 }
