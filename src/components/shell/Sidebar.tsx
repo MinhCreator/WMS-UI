@@ -1,7 +1,10 @@
 import { Tooltip } from "@chakra-ui/react";
 import { NavLink } from "react-router-dom";
-import type { Warehouse } from "../../types";
-import { navSections } from "./nav";
+import type { AuthWarehouse } from "../../api/types";
+import { demoDataEnabled } from "../../config";
+import { useAppSelector } from "../../states/hooks";
+import { selectPermissions } from "../../states/slices/authSlice";
+import { filterNavSections } from "./nav";
 import {
   HelpButton,
   LogoMark,
@@ -12,8 +15,8 @@ import {
 
 interface SidebarProps {
   collapsed: boolean;
-  warehouse: Warehouse;
-  onWarehouseChange: (w: Warehouse) => void;
+  warehouse: AuthWarehouse | null;
+  onWarehouseChange: (w: AuthWarehouse) => void;
   onNavigate?: () => void;
 }
 
@@ -28,6 +31,9 @@ function itemClasses(isActive: boolean, collapsed: boolean): string {
 }
 
 export function Sidebar({ collapsed, warehouse, onWarehouseChange, onNavigate }: SidebarProps) {
+  const permissions = useAppSelector(selectPermissions);
+  const sections = filterNavSections(permissions);
+
   return (
     <div className="flex h-full flex-col bg-surface" style={{ width: collapsed ? 64 : 240 }}>
       <div
@@ -48,11 +54,13 @@ export function Sidebar({ collapsed, warehouse, onWarehouseChange, onNavigate }:
         )}
       </div>
 
-      {!collapsed && <WarehouseMenu warehouse={warehouse} onChange={onWarehouseChange} variant="sidebar" />}
+      {!collapsed && (
+        <WarehouseMenu warehouse={warehouse} onChange={onWarehouseChange} variant="sidebar" />
+      )}
 
       <nav className="min-h-0 flex-1 overflow-y-auto px-2 pb-2">
         <div className="flex flex-col gap-4 pt-1">
-          {navSections.map((section) => (
+          {sections.map((section) => (
             <div key={section.section} className="flex flex-col gap-0.5">
               {collapsed ? (
                 <div className="mx-auto my-1 h-px w-6 bg-line" aria-hidden />
@@ -75,7 +83,15 @@ export function Sidebar({ collapsed, warehouse, onWarehouseChange, onNavigate }:
                     {!collapsed && (
                       <>
                         <span className="truncate">{item.label}</span>
-                        {item.badge !== undefined && (
+                        {item.demo && demoDataEnabled && (
+                          <span
+                            title="This screen still renders sample data"
+                            className="ml-auto rounded-[4px] border border-line bg-surface-2 px-1 text-[9px] font-semibold tracking-[0.06em] text-ink-4 uppercase"
+                          >
+                            demo
+                          </span>
+                        )}
+                        {!item.demo && item.badge !== undefined && (
                           <span className="tnum ml-auto rounded-[4px] bg-line px-1 text-[10.5px] font-semibold text-ink-3">
                             {item.badge}
                           </span>
@@ -104,6 +120,7 @@ export function Sidebar({ collapsed, warehouse, onWarehouseChange, onNavigate }:
         <div className="flex flex-col items-center gap-1 border-t border-line py-2">
           <HelpButton variant="icon" />
           <NotificationsButton variant="icon" />
+          {permissions.includes("settings:read") && (
           <NavLink
             to="/settings"
             aria-label="Settings"
@@ -118,6 +135,7 @@ export function Sidebar({ collapsed, warehouse, onWarehouseChange, onNavigate }:
               <circle cx="12" cy="12" r="3" />
             </svg>
           </NavLink>
+          )}
           <UserMenu variant="icon" />
         </div>
       ) : (

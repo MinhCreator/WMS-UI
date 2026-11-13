@@ -1,6 +1,6 @@
 import { IconButton } from "@chakra-ui/react";
 import { Menu, Search } from "lucide-react";
-import type { Warehouse } from "../../types";
+import type { AuthWarehouse } from "../../api/types";
 import { Breadcrumbs } from "./Breadcrumbs";
 import {
   HelpButton,
@@ -13,8 +13,8 @@ interface HeaderProps {
   showMenu: boolean;
   onOpenMenu: () => void;
   onOpenSearch: () => void;
-  warehouse: Warehouse;
-  onWarehouseChange: (w: Warehouse) => void;
+  warehouse: AuthWarehouse | null;
+  onWarehouseChange: (w: AuthWarehouse) => void;
 }
 
 export function Header({
@@ -64,11 +64,14 @@ export function Header({
           <Search size={16} />
         </IconButton>
 
-        <span className="mx-1 hidden h-5 w-px bg-line xl:block" aria-hidden />
-
-        <span className="hidden xl:block">
-          <WarehouseMenu warehouse={warehouse} onChange={onWarehouseChange} variant="header" />
-        </span>
+        {warehouse && (
+          <>
+            <span className="mx-1 hidden h-5 w-px bg-line xl:block" aria-hidden />
+            <span className="hidden xl:block">
+              <WarehouseMenu warehouse={warehouse} onChange={onWarehouseChange} variant="header" />
+            </span>
+          </>
+        )}
 
         <span className="mx-1 h-5 w-px bg-line" aria-hidden />
 

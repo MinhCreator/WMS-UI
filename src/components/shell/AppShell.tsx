@@ -7,7 +7,10 @@ import {
 import { useEffect } from "react";
 import { Outlet, useLocation } from "react-router-dom";
 import { useAppDispatch, useAppSelector } from "../../states/hooks";
-import { selectWarehouse, setWarehouse } from "../../states/slices/sessionSlice";
+import {
+  selectActiveWarehouse,
+  setActiveWarehouse,
+} from "../../states/slices/authSlice";
 import {
   selectDrawerOpen,
   selectSearchOpen,
@@ -25,7 +28,7 @@ export function AppShell() {
   const dispatch = useAppDispatch();
   const drawerOpen = useAppSelector(selectDrawerOpen);
   const searchOpen = useAppSelector(selectSearchOpen);
-  const warehouse = useAppSelector(selectWarehouse);
+  const warehouse = useAppSelector(selectActiveWarehouse);
   const location = useLocation();
 
   useEffect(() => {
@@ -63,7 +66,7 @@ export function AppShell() {
     <Sidebar
       collapsed={collapsed}
       warehouse={warehouse}
-      onWarehouseChange={(w) => dispatch(setWarehouse(w.code))}
+      onWarehouseChange={(w) => dispatch(setActiveWarehouse(w.id))}
       onNavigate={onNavigate}
     />
   );
@@ -94,7 +97,7 @@ export function AppShell() {
           onOpenMenu={() => dispatch(setDrawerOpen(true))}
           onOpenSearch={() => dispatch(setSearchOpen(true))}
           warehouse={warehouse}
-          onWarehouseChange={(w) => dispatch(setWarehouse(w.code))}
+          onWarehouseChange={(w) => dispatch(setActiveWarehouse(w.id))}
         />
         <main
           id="main-scroll"

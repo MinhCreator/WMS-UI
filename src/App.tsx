@@ -1,5 +1,16 @@
+import type { ReactNode } from "react";
 import { Route, Routes, useLocation } from "react-router-dom";
+import {
+  RedirectIfAuthenticated,
+  RequireAuth,
+  RequirePermission,
+} from "./components/auth";
 import { AppShell } from "./components/shell";
+import AcceptInviteForm from "./feature/auth/acceptInviteForm";
+import ForgotPasswordForm from "./feature/auth/forgotPasswordForm";
+import LoginForm from "./feature/auth/loginForm";
+import ResetPasswordForm from "./feature/auth/resetPasswordForm";
+import SignupForm from "./feature/auth/signupForm";
 import Adjustments from "./pages/Adjustments";
 import Customers from "./pages/Customers";
 import CycleCountDetail from "./pages/CycleCountDetail";
@@ -37,42 +48,258 @@ function NotFound() {
   );
 }
 
+/** Page-level RBAC gate: the route renders only with the required read permission. */
+function Page({ permission, children }: { permission: string | string[]; children: ReactNode }) {
+  return <RequirePermission permission={permission}>{children}</RequirePermission>;
+}
+
 export default function App() {
   return (
     <Routes>
-      <Route element={<AppShell />}>
-        <Route index element={<Dashboard />} />
+      <Route
+        path="/login"
+        element={
+          <RedirectIfAuthenticated>
+            <LoginForm />
+          </RedirectIfAuthenticated>
+        }
+      />
+      <Route
+        path="/signup"
+        element={
+          <RedirectIfAuthenticated>
+            <SignupForm />
+          </RedirectIfAuthenticated>
+        }
+      />
+      <Route
+        path="/forgot-password"
+        element={
+          <RedirectIfAuthenticated>
+            <ForgotPasswordForm />
+          </RedirectIfAuthenticated>
+        }
+      />
+      <Route
+        path="/reset-password"
+        element={
+          <RedirectIfAuthenticated>
+            <ResetPasswordForm />
+          </RedirectIfAuthenticated>
+        }
+      />
+      <Route
+        path="/invite"
+        element={
+          <RedirectIfAuthenticated>
+            <AcceptInviteForm />
+          </RedirectIfAuthenticated>
+        }
+      />
 
-        <Route path="receiving" element={<Receiving />} />
-        <Route path="putaway" element={<Putaway />} />
-        <Route path="picking" element={<Picking />} />
-        <Route path="picking/workspace/:orderId" element={<PickerWorkspace />} />
-        <Route path="packing" element={<Packing />} />
-        <Route path="shipping" element={<Shipping />} />
-        <Route path="transfers" element={<Transfers />} />
+      <Route element={<RequireAuth />}>
+        <Route element={<AppShell />}>
+          <Route index element={<Dashboard />} />
 
-        <Route path="inventory" element={<Inventory />} />
-        <Route path="products" element={<Products />} />
-        <Route path="products/:sku" element={<ProductDetail />} />
-        <Route path="locations" element={<Locations />} />
-        <Route path="locations/:zone" element={<LocationsZone />} />
+          <Route
+            path="receiving"
+            element={
+              <Page permission="receipt:read">
+                <Receiving />
+              </Page>
+            }
+          />
+          <Route
+            path="putaway"
+            element={
+              <Page permission="putaway:read">
+                <Putaway />
+              </Page>
+            }
+          />
+          <Route
+            path="picking"
+            element={
+              <Page permission="pick:read">
+                <Picking />
+              </Page>
+            }
+          />
+          <Route
+            path="picking/workspace/:orderId"
+            element={
+              <Page permission="pick:read">
+                <PickerWorkspace />
+              </Page>
+            }
+          />
+          <Route
+            path="packing"
+            element={
+              <Page permission="pack:read">
+                <Packing />
+              </Page>
+            }
+          />
+          <Route
+            path="shipping"
+            element={
+              <Page permission="shipment:read">
+                <Shipping />
+              </Page>
+            }
+          />
+          <Route
+            path="transfers"
+            element={
+              <Page permission="transfer:read">
+                <Transfers />
+              </Page>
+            }
+          />
 
-        <Route path="adjustments" element={<Adjustments />} />
-        <Route path="cycle-counts" element={<CycleCounts />} />
-        <Route path="cycle-counts/:id" element={<CycleCountDetail />} />
+          <Route
+            path="inventory"
+            element={
+              <Page permission="inventory:read">
+                <Inventory />
+              </Page>
+            }
+          />
+          <Route
+            path="products"
+            element={
+              <Page permission="catalog:read">
+                <Products />
+              </Page>
+            }
+          />
+          <Route
+            path="products/:sku"
+            element={
+              <Page permission="catalog:read">
+                <ProductDetail />
+              </Page>
+            }
+          />
+          <Route
+            path="locations"
+            element={
+              <Page permission="facility:read">
+                <Locations />
+              </Page>
+            }
+          />
+          <Route
+            path="locations/:zone"
+            element={
+              <Page permission="facility:read">
+                <LocationsZone />
+              </Page>
+            }
+          />
 
-        <Route path="purchase-orders" element={<PurchaseOrders />} />
-        <Route path="purchase-orders/:id" element={<PurchaseOrderDetail />} />
-        <Route path="sales-orders" element={<SalesOrders />} />
-        <Route path="suppliers" element={<Suppliers />} />
-        <Route path="customers" element={<Customers />} />
-        <Route path="users" element={<Users />} />
+          <Route
+            path="adjustments"
+            element={
+              <Page permission="adjustment:read">
+                <Adjustments />
+              </Page>
+            }
+          />
+          <Route
+            path="cycle-counts"
+            element={
+              <Page permission="cycle_count:read">
+                <CycleCounts />
+              </Page>
+            }
+          />
+          <Route
+            path="cycle-counts/:id"
+            element={
+              <Page permission="cycle_count:read">
+                <CycleCountDetail />
+              </Page>
+            }
+          />
 
-        <Route path="reports" element={<Reports />} />
-        <Route path="performance" element={<Performance />} />
-        <Route path="settings" element={<Settings />} />
+          <Route
+            path="purchase-orders"
+            element={
+              <Page permission="purchase_order:read">
+                <PurchaseOrders />
+              </Page>
+            }
+          />
+          <Route
+            path="purchase-orders/:id"
+            element={
+              <Page permission="purchase_order:read">
+                <PurchaseOrderDetail />
+              </Page>
+            }
+          />
+          <Route
+            path="sales-orders"
+            element={
+              <Page permission="sales_order:read">
+                <SalesOrders />
+              </Page>
+            }
+          />
+          <Route
+            path="suppliers"
+            element={
+              <Page permission="catalog:read">
+                <Suppliers />
+              </Page>
+            }
+          />
+          <Route
+            path="customers"
+            element={
+              <Page permission="customer:read">
+                <Customers />
+              </Page>
+            }
+          />
+          <Route
+            path="users"
+            element={
+              <Page permission="user:read">
+                <Users />
+              </Page>
+            }
+          />
 
-        <Route path="*" element={<NotFound />} />
+          <Route
+            path="reports"
+            element={
+              <Page permission="report:read">
+                <Reports />
+              </Page>
+            }
+          />
+          <Route
+            path="performance"
+            element={
+              <Page permission="report:read">
+                <Performance />
+              </Page>
+            }
+          />
+          <Route
+            path="settings"
+            element={
+              <Page permission="settings:read">
+                <Settings />
+              </Page>
+            }
+          />
+
+          <Route path="*" element={<NotFound />} />
+        </Route>
       </Route>
     </Routes>
   );

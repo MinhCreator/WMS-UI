@@ -28,12 +28,20 @@ import {
   Warehouse as WarehouseIcon,
   X,
 } from "lucide-react";
-import { Link } from "react-router-dom";
-import type { Warehouse } from "../../types";
-import { currentOperator, warehouses } from "../../data/meta";
+import { Link, useNavigate } from "react-router-dom";
+import type { AuthWarehouse } from "../../api/types";
 import { useState } from "react";
 import { useAppToast } from "../ui/Toast";
 import { useAppDispatch, useAppSelector } from "../../states/hooks";
+import {
+  logout,
+  logoutEverywhere,
+  selectCan,
+  selectCurrentUser,
+  selectDisplayName,
+  selectInitials,
+  selectWarehouses,
+} from "../../states/slices/authSlice";
 import {
   markAllNotificationsRead,
   markNotificationRead,
@@ -58,10 +66,12 @@ export function WarehouseMenu({
   onChange,
   variant = "header",
 }: {
-  warehouse: Warehouse;
-  onChange: (w: Warehouse) => void;
+  warehouse: AuthWarehouse | null;
+  onChange: (w: AuthWarehouse) => void;
   variant?: "header" | "sidebar";
 }) {
+  const warehouses = useAppSelector(selectWarehouses);
+
   if (variant === "sidebar") {
     return (
       <Menu placement="right-start">
@@ -84,25 +94,20 @@ export function WarehouseMenu({
           <span className="flex min-w-0 flex-col items-start leading-tight">
             <span className="text-2xs font-medium text-ink-4">Warehouse</span>
             <span className="w-full truncate text-tn text-ink">
-              {warehouse.name}
+              {warehouse?.name ?? "No site assigned"}
             </span>
           </span>
         </MenuButton>
         <MenuList minW="250px" zIndex={40}>
           {warehouses.map((w) => (
             <MenuItem
-              key={w.code}
+              key={w.id}
               onClick={() => onChange(w)}
-              bg={w.code === warehouse.code ? "accent.50" : undefined}
+              bg={w.id === warehouse?.id ? "accent.50" : undefined}
             >
               <span className="flex w-full items-center justify-between gap-3">
-                <span>
-                  <span className="block font-semibold text-ink">{w.name}</span>
-                  <span className="block text-2xs text-ink-3">
-                    {w.code} · {w.city}
-                  </span>
-                </span>
-                {w.code === warehouse.code && (
+                <span className="block font-semibold text-ink">{w.name}</span>
+                {w.id === warehouse?.id && (
                   <span className="h-2 w-2 rounded-full bg-accent" />
                 )}
               </span>
@@ -125,23 +130,18 @@ export function WarehouseMenu({
         fontWeight={600}
         letterSpacing="0.02em"
       >
-        {warehouse.code}
+        {warehouse?.name ?? "No site"}
       </MenuButton>
       <MenuList minW="250px" zIndex={40}>
         {warehouses.map((w) => (
           <MenuItem
-            key={w.code}
+            key={w.id}
             onClick={() => onChange(w)}
-            bg={w.code === warehouse.code ? "accent.50" : undefined}
+            bg={w.id === warehouse?.id ? "accent.50" : undefined}
           >
             <span className="flex w-full items-center justify-between gap-3">
-              <span>
-                <span className="block font-semibold text-ink">{w.name}</span>
-                <span className="block text-2xs text-ink-3">
-                  {w.code} · {w.city}
-                </span>
-              </span>
-              {w.code === warehouse.code && (
+              <span className="block font-semibold text-ink">{w.name}</span>
+              {w.id === warehouse?.id && (
                 <span className="h-2 w-2 rounded-full bg-accent" />
               )}
             </span>
@@ -367,45 +367,59 @@ export function HelpButton({ variant = "icon" }: { variant?: "icon" | "row" }) {
 }
 
 export function UserMenu({ variant = "icon" }: { variant?: "icon" | "row" }) {
+  const dispatch = useAppDispatch();
   const toast = useAppToast();
+  const navigate = useNavigate();
+  const user = useAppSelector(selectCurrentUser);
+  const name = useAppSelector(selectDisplayName);
+  const initials = useAppSelector(selectInitials);
+  const canReadSettings = useAppSelector(selectCan("settings:read"));
+
+  const signOut = async (everywhere: boolean) => {
+    await dispatch(everywhere ? logoutEverywhere() : logout());
+    toast({
+      title: "Signed out",
+      description: everywhere
+        ? "All sessions for this account were revoked."
+        : "Your session was closed.",
+      status: "info",
+    });
+    navigate("/login", { replace: true });
+  };
 
   const items = (
     <>
       <MenuItem
         icon={<UserRound size={14} />}
         fontSize="13px"
-        onClick={() =>
-          toast({
-            title: "Profile",
-            description: "Profile settings are not part of this demo.",
-            status: "info",
-          })
-        }
+        isDisabled
+        _disabled={{ opacity: 1, cursor: "default" }}
       >
-        Profile
+        <span className="flex flex-col">
+          <span className="font-semibold text-ink">{user?.email ?? "Account"}</span>
+          <span className="text-2xs text-ink-3">{user?.role ?? ""}</span>
+        </span>
       </MenuItem>
-      <MenuItem
-        icon={<Settings size={14} />}
-        fontSize="13px"
-        as={Link}
-        to="/settings"
-      >
-        Settings
-      </MenuItem>
+      {canReadSettings && (
+        <MenuItem icon={<Settings size={14} />} fontSize="13px" as={Link} to="/settings">
+          Settings
+        </MenuItem>
+      )}
       <MenuDivider />
       <MenuItem
         icon={<LogOut size={14} />}
         fontSize="13px"
-        color="danger.600"
-        onClick={() =>
-          toast({
-            title: "Signed out",
-            description: "Demo session remains active.",
-            status: "info",
-          })
-        }
+        onClick={() => void signOut(false)}
       >
         Sign out
+      </MenuItem>
+      <MenuItem
+        icon={<LogOut size={14} />}
+        fontSize="13px"
+        color="danger.600"
+        onClick={() => void signOut(true)}
+      >
+        Sign out everywhere
       </MenuItem>
     </>
   );
@@ -425,14 +439,14 @@ export function UserMenu({ variant = "icon" }: { variant?: "icon" | "row" }) {
         >
           <span className="flex w-full items-center gap-2.5">
             <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#e6edf3] text-2xs font-bold text-ink-2">
-              {currentOperator.initials}
+              {initials}
             </span>
             <span className="min-w-0 flex-1 text-left leading-tight">
               <span className="block truncate text-tn font-semibold text-ink">
-                {currentOperator.name}
+                {name}
               </span>
               <span className="block truncate text-2xs text-ink-3">
-                {currentOperator.role}
+                {user?.role ?? ""}
               </span>
             </span>
             <ChevronDown size={13} className="shrink-0 text-ink-4" />
@@ -455,15 +469,13 @@ export function UserMenu({ variant = "icon" }: { variant?: "icon" | "row" }) {
         borderRadius="full"
       >
         <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#e6edf3] text-2xs font-bold text-ink-2">
-          {currentOperator.initials}
+          {initials}
         </span>
       </MenuButton>
       <MenuList minW="210px" zIndex={40}>
         <div className="border-b border-line px-3 py-2">
-          <div className="text-tn font-semibold text-ink">
-            {currentOperator.name}
-          </div>
-          <div className="text-2xs text-ink-3">{currentOperator.email}</div>
+          <div className="text-tn font-semibold text-ink">{name}</div>
+          <div className="text-2xs text-ink-3">{user?.email ?? user?.role ?? ""}</div>
         </div>
         {items}
       </MenuList>

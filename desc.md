@@ -1,6 +1,7 @@
 ## General/shell
 
 - WarehouseOS WMS single-page app. Persistent left nav grouped as Operations / Inventory / Management / Analytics. Top bar has breadcrumb, global search SKU, order, location, barcode… ⌘K, warehouse switcher A-Columbus / B-Reno / C-Allentown, notifications panel with Mark all read, help/shortcuts, user menu Profile / Sign out. Shared patterns: KPI cards, filter bar with search + dropdowns, sortable table with Rows per page / Columns / Prev-Next, status pills, progress bars, charts.
+- Login /login, Signup /signup: standalone auth screens outside the shell. Split layout pairs a dark brand panel (site stats, scan-first feature list, system status) with a light form card. Sign-in covers demo credentials, remember me, forgot password and SSO. Signup captures name, work email, home site, role, password strength and terms.
   Dashboard /
 - Monitors shift: KPI cards, 7-day fulfillment chart Received/Picked/Packed/Shipped, live activity timeline by role, exception queue table with Reassign / Resolve / Adjust / Investigate / Relabel / View, in-progress waves + dock receipts panels, low-stock table linking to product detail, zone utilization bars.
 

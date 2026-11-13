@@ -41,7 +41,7 @@ npm run preview    # Preview the production build
 npm run typecheck  # tsc -b --pretty
 ```
 
-> **Prerequisites:** Node + npm. No environment variables needed — `.env.example` is empty and nothing reads `import.meta.env`.
+> **Prerequisites:** Node + npm, plus a running `wms-backend`. Copy `.env.example` to `.env` when the API is not on `http://localhost:3000`: `vite dev` proxies `/api` to `VITE_DEV_API_TARGET`, and `VITE_API_URL` overrides the API origin entirely.
 
 ---
 ### Preview
@@ -59,7 +59,7 @@ npm run typecheck  # tsc -b --pretty
 | **Build**        | Vite 8 · `@vitejs/plugin-react` · `@tailwindcss/vite` · React Compiler (`@rolldown/plugin-babel`) |
 | **Styling**      | Tailwind CSS v4 (`src/index.css` `@theme` tokens) · Chakra UI v2 (`src/theme.ts`) · Emotion |
 | **Motion/Icons** | Framer Motion 11 · Lucide React                                                          |
-| **Data**         | Local mock modules in `src/data/` — no backend wired up                                 |
+| **Data**         | `src/api/` fetch client with in-memory access token + refresh-on-401; Redux Toolkit `authSlice` for session/permissions. Screens still on `src/data/` mocks are badged **demo**. |
 
 ---
 
@@ -74,6 +74,13 @@ src/
 ├── types.ts            # Domain types — orders, receipts, picks, counts, transfers, users…
 │
 ├── pages/              # 25 pages (see Routes below)
+│
+├── api/                # client.ts (tokens, refresh-on-401), auth.ts, users.ts, types.ts
+├── config.ts           # VITE_DEMO_DATA gate for demo-badged screens
+├── components/auth/    # RequireAuth, RequirePermission, <Can>, forbidden state
+├── states/slices/      # authSlice (session, permissions, active warehouse)
+├── feature/
+│   └── auth/           # Login, request-access, forgot/reset password, invite accept
 │
 ├── components/
 │   ├── shell/          # AppShell · Sidebar · Header · Breadcrumbs ·
@@ -93,7 +100,19 @@ Path alias: `@/` → `./src` (see `vite.config.ts`).
 
 ## 🗺 Routes
 
-All routes render inside `<AppShell />`. Unknown paths show a `404` page with the unmatched pathname.
+Application routes render inside `<AppShell />` behind `RequireAuth`; each page is additionally gated by `RequirePermission` and the sidebar only lists permitted screens. `/login` and the other auth screens are standalone. Unknown paths show a `404` page with the unmatched pathname.
+
+### Authentication
+
+| Path | Page | What lives there |
+| ---- | ---- | ---------------- |
+| `/login` | Login | Real sign-in against `POST /api/auth/login`; error banner, SSO entry |
+| `/signup` | Request access | Invite-only onboarding via `POST /api/auth/request-access` |
+| `/forgot-password` | Forgot password | Sends a single-use reset link |
+| `/reset-password?token=…` | Reset password | Sets the new password from the emailed token |
+| `/invite?token=…` | Accept invite | Activates an invited account and signs in |
+
+**Session model:** the access token is kept in memory only; the refresh token is an httpOnly cookie scoped to `/api/auth`. Any 401 triggers one transparent refresh-and-retry, and a page reload restores the session through `POST /api/auth/refresh`. Role, warehouse and permission changes revoke sessions server-side immediately.
 
 ### Operations
 
@@ -156,6 +175,7 @@ All routes render inside `<AppShell />`. Unknown paths show a `404` page with th
 - **Masters** — suppliers, customers, users with search, filter and status management
 - **Insights** — dashboard metrics, reports, performance charts, activity timeline
 - **Shell** — sidebar nav, header, breadcrumbs, `⌘K`-style command search, notification / activity widgets
+- **Auth** — real API sign-in with refresh-cookie sessions, invite/request-access/password-reset flows, permission-aware navigation, page guards, and a live Users & Roles admin screen (invites, access requests, role/site edits, session revocation)
 - **Shared UI kit** — typed `DataTable`, `FilterBar`, `StatusBadge` tones (`ok` / `warn` / `danger` / `info` / `neutral`), barcode scanner, confirm dialogs, toasts, loading & empty states
 
 ---
@@ -179,8 +199,8 @@ All routes render inside `<AppShell />`. Unknown paths show a `404` page with th
 
 ## 📝 Notes
 
-- All data is static mock data in `src/data/` — no API client, fetch layer, or backend proxy exists in this repo.
-- `.env.example` is empty; no env vars are consumed.
+- Screens badged **demo** in the sidebar still render module data from `src/data/`; they are scheduled to be wired to the backend domain APIs one module at a time. Set `VITE_DEMO_DATA=false` to hide the badges once every screen is live.
+- `/users` is fully API-backed (auth, users, invites, access requests).
 - `index.html` title: `WarehouseOS — WMS`.
 
 ---
